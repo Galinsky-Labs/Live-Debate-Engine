@@ -14,3 +14,18 @@ test('unknown fields, malformed timestamps, and hashes rejected',()=>{
  {documentRevision:-1},{acceptedAt:'yesterday'},{participantId:'../tenant'}])
  assert.throws(()=>reviewDocumentAcceptance({...accepted(),...patch}));
 });
+
+test('receipt identifiers and hashes never accept string coercion',()=>{
+ for(const key of ['tenantId','participantId','documentId','documentHash']) {
+  for(const value of [42,[accepted()[key]],{toString:()=>accepted()[key]}])
+   assert.throws(()=>reviewDocumentAcceptance({...accepted(),[key]:value}));
+ }
+ assert.throws(()=>reviewDocumentAcceptance({...accepted(),documentRevision:1_000_001}));
+});
+
+test('canonical millisecond timestamps match history without accepting normalized invalid dates',()=>{
+ assert.equal(reviewDocumentAcceptance({...accepted(),acceptedAt:'2026-10-18T12:00:00.123Z'}).acceptedAt,'2026-10-18T12:00:00.123Z');
+ for(const acceptedAt of ['2026-02-30T12:00:00.000Z','2026-10-18T12:00:00Z','2026-10-18T12:00:00.1230Z','2026-10-18T12:00:00.000+00:00'])
+  assert.throws(()=>reviewDocumentAcceptance({...accepted(),acceptedAt}));
+});
+

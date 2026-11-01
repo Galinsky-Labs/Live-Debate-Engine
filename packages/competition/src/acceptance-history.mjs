@@ -8,22 +8,29 @@ export function projectConsentHistory({tenantId,eventId,participantId,documentId
   for (const id of [tenantId,eventId,participantId,documentId])
     if (typeof id !== 'string' || !IDENTIFIER.test(id)) throw new TypeError('Invalid consent history scope');
   if (!Array.isArray(events) || events.length > 500) throw new TypeError('Invalid consent event count');
-  let expectedSequence=1, active=null, lastRecordedAt='';
+  let expectedSequence=1, active=null, lastRecordedAt='', highestRevision=0, revisionHash=null;
   for (const event of events) {
     if (!event || Object.getPrototypeOf(event)!==Object.prototype ||
         Object.keys(event).sort().join(',')!=='documentHash,documentId,documentRevision,eventId,eventType,participantId,recordedAt,sequence,tenantId')
       throw new TypeError('Invalid consent ledger entry');
     if (event.tenantId!==tenantId || event.eventId!==eventId || event.participantId!==participantId || event.documentId!==documentId ||
         event.sequence!==expectedSequence || !TYPES.has(event.eventType) ||
-        !Number.isSafeInteger(event.documentRevision) || event.documentRevision<1 ||
+        !Number.isSafeInteger(event.documentRevision) || event.documentRevision<1 || event.documentRevision>1_000_000 ||
         typeof event.documentHash!=='string' || !HASH.test(event.documentHash) ||
         typeof event.recordedAt!=='string' || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z$/.test(event.recordedAt) ||
         !Number.isFinite(Date.parse(event.recordedAt)) || new Date(event.recordedAt).toISOString()!==event.recordedAt ||
         (lastRecordedAt && event.recordedAt<lastRecordedAt))
       throw new TypeError('Consent history has a gap, invalid entry or inconsistent scope');
     if (event.eventType==='accepted') {
+      // Withdrawal clears consent, not the immutable revision identity. Reaccepting
+      // the same exact wording is allowed; rolling back or rewriting it is not.
+      if (event.documentRevision<highestRevision ||
+          (event.documentRevision===highestRevision && event.documentHash!==revisionHash))
+        throw new TypeError('Consent cannot roll back or rewrite a previously observed document revision');
       if (active && event.documentRevision<=active.revision)
         throw new TypeError('An active consent cannot be overwritten with the same or an older document revision');
+      highestRevision=event.documentRevision;
+      revisionHash=event.documentHash;
       active={revision:event.documentRevision,documentHash:event.documentHash,sequence:event.sequence,acceptedAt:event.recordedAt};
     }
     else {
@@ -37,3 +44,4 @@ export function projectConsentHistory({tenantId,eventId,participantId,documentId
   return Object.freeze({active: active===null?null:Object.freeze(active), historyLength:events.length,
     ledgerAuthenticityVerified:false, legallyEffective:false, participantAuthorized:false});
 }
+

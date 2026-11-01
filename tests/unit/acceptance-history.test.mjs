@@ -27,3 +27,17 @@ test('skipped sequence, wrong participant, unrelated withdrawal and unknown ledg
  reject([{...entry('accepted',1),recordedAt:'not-a-time'}]);
  reject([entry('accepted',1),{...entry('withdrawn',2),recordedAt:'2026-10-18T11:59:59.000Z'}]);
 });
+
+test('withdrawal preserves revision identity while permitting explicit renewed consent',()=>{
+ const start=[entry('accepted',1,3),entry('withdrawn',2,3)];
+ for(const next of [entry('accepted',3,2),entry('accepted',3,3,'b'.repeat(64))])
+  assert.throws(()=>projectConsentHistory({...scope(),events:[...start,next]}),/roll back or rewrite/);
+ const renewed=projectConsentHistory({...scope(),events:[...start,entry('accepted',3,3)]});
+ assert.equal(renewed.active.revision,3);
+ assert.equal(renewed.active.sequence,3);
+ assert.equal(renewed.participantAuthorized,false);
+ const advanced=[...start,entry('accepted',3,4,'b'.repeat(64)),entry('withdrawn',4,4,'b'.repeat(64))];
+ assert.throws(()=>projectConsentHistory({...scope(),events:[...advanced,entry('accepted',5,3)]}));
+ assert.throws(()=>projectConsentHistory({...scope(),events:[entry('accepted',1,1_000_001)]}));
+});
+

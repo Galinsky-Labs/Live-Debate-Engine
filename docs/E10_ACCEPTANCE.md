@@ -27,3 +27,10 @@ The canonical development plan depends on E09 roster/identity preparation. The E
 The E10 branch now also contains strict acceptance intent and immutable consent-history projectors, a fail-closed guardian/employee-family evidence matrix, and a legal template transition validator. The projection accepts only strictly increasing ledger sequence with canonical nondecreasing timestamps, exact document scope and revision, and an exact-target withdrawal. A new wording/body/jurisdiction change cannot silently reuse the same published legal revision. No helper grants participation or claims a valid signature.
 
 Fourteen synthetic Node.js isolated model tests passed with mirrored source files whose git-blob hashes matched the immutable Boardroom source reads. This is targeted development evidence, **not** an observed pass for the repository's latest GitHub Actions, PostgreSQL migration, actual browser, or legal review. The exhaustive security/transaction and privacy acceptance matrix remains in `docs/E10_DURABLE_LEDGER_DESIGN.md`. The release ledger and authenticated server endpoints remain unimplemented until dependencies are reconciled. Keep PR20 draft.
+
+## Consent history and receipt validation repair (2026-11-01)
+
+Withdrawal now clears active consent while retaining the highest observed document revision and its digest. A subsequent explicit acceptance may renew the same exact revision or accept a newer one, but cannot roll back to older wording or replace a revision's digest. Active duplicate consent remains rejected. Receipt identifiers and hashes require actual strings; coercible arrays, numbers and objects fail closed. Canonical UTC millisecond timestamps are consistent with the history projector, and revision bounds match the template and command parsers.
+
+Focused model regression tests cover withdrawal/renewal/rollback, digest substitution, identifier coercion, invalid date normalization and canonical milliseconds. These changes do not issue durable receipts or establish signer identity, legal enforceability or participation authority. The prerequisite and integration work above remains pending.
+

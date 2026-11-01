@@ -18,7 +18,7 @@ export function evaluateEventAcceptance({ tenantId, eventId, participantId, docu
         Object.keys(doc).sort().join(',') !== 'documentHash,documentId,documentRevision,kind,required') throw new TypeError('Invalid document requirement');
     scopedId(doc.documentId);
     if (!kinds.has(doc.kind) || typeof doc.required !== 'boolean' ||
-        !Number.isSafeInteger(doc.documentRevision) || doc.documentRevision < 1 ||
+        !Number.isSafeInteger(doc.documentRevision) || doc.documentRevision < 1 || doc.documentRevision > 1_000_000 ||
         typeof doc.documentHash !== 'string' || !HASH.test(doc.documentHash) ||
         required.has(doc.documentId)) throw new TypeError('Invalid document manifest');
     required.set(doc.documentId, doc);
@@ -50,3 +50,4 @@ export function evaluateEventAcceptance({ tenantId, eventId, participantId, docu
     identityVerified: false, legallyEffective: false, competitionReady: false,
   });
 }
+

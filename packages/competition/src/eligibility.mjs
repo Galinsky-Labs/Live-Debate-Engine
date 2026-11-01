@@ -4,10 +4,12 @@ const HASH=/^[0-9a-f]{64}$/;
 export function reviewDocumentAcceptance(input) {
  if(!input||Object.getPrototypeOf(input)!==Object.prototype||
     Object.keys(input).sort().join(',')!=='acceptedAt,documentHash,documentId,documentRevision,participantId,tenantId'||
-    !ID.test(input.tenantId||'')||!ID.test(input.participantId||'')||
-    !ID.test(input.documentId||'')||!HASH.test(input.documentHash||'')||
-    !Number.isSafeInteger(input.documentRevision)||input.documentRevision<1||
-    typeof input.acceptedAt!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.000Z$/.test(input.acceptedAt)||
+    typeof input.tenantId!=='string'||!ID.test(input.tenantId)||
+    typeof input.participantId!=='string'||!ID.test(input.participantId)||
+    typeof input.documentId!=='string'||!ID.test(input.documentId)||
+    typeof input.documentHash!=='string'||!HASH.test(input.documentHash)||
+    !Number.isSafeInteger(input.documentRevision)||input.documentRevision<1||input.documentRevision>1_000_000||
+    typeof input.acceptedAt!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/.test(input.acceptedAt)||
     !Number.isFinite(Date.parse(input.acceptedAt))||
     new Date(input.acceptedAt).toISOString()!==input.acceptedAt)
  throw new TypeError('Invalid document acceptance');
@@ -19,3 +21,4 @@ export function matchingCurrentAcceptance(acceptance,{tenantId,participantId,doc
  record.documentId===documentId&&record.documentRevision===documentRevision&&
  record.documentHash===documentHash;
 }
+
