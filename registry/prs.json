@@ -306,7 +306,9 @@
       "id": "E-27",
       "title": "Standard-debate prize ledger",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        28
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -315,7 +317,9 @@
       "id": "E-28",
       "title": "Tournament brackets and advancement",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        28
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -324,7 +328,9 @@
       "id": "E-29",
       "title": "Tournament placement prizes and special awards",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        28
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -333,7 +339,9 @@
       "id": "E-30",
       "title": "Disputes, sanctions, disqualification, and corrections",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        28
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -342,7 +350,9 @@
       "id": "E-31",
       "title": "Payee onboarding and payout execution",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        28
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -351,7 +361,9 @@
       "id": "E-32",
       "title": "Complete human-operated competition acceptance suite",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        28
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
