@@ -21,6 +21,7 @@ import { OperationStore } from '../../dist/packages/competition/src/operations/s
 import { createOperationsHttp } from '../../dist/packages/competition/src/operations/http.js';
 import { operationStreams } from '../../dist/packages/competition/src/operations/index.js';
 import { BallotService, createBallotHttp } from '../../dist/packages/competition/src/operations/ballots.js';
+import { createPublicHttp } from '../../dist/packages/public/src/http.js';
 
 export async function runCompetitionCases(t, admin, connection) {
   const names = ['lde_material_auth_test', 'lde_material_app_test']; const pools = [];
@@ -35,7 +36,7 @@ export async function runCompetitionCases(t, admin, connection) {
   }
   const [authPool, appPool] = pools; let identity; let http; let administration; let operations; let ballots; const mails = []; const logs = [];
   const store = new CompetitionStore(appPool);
-  const server = createApi({ ballots: { handle: (...args) => ballots.handle(...args) }, operations: { handle: (...args) => operations.handle(...args) }, administration: { handle: (...args) => administration.handle(...args) }, readiness: async () => ({ ready: true, reason: 'schema_compatible' }), identity: { handle: (...args) => identity.handle(...args) }, competition: { handle: (...args) => http.handle(...args) } });
+  const server = createApi({ publicApi: createPublicHttp(appPool, new Set()), ballots: { handle: (...args) => ballots.handle(...args) }, operations: { handle: (...args) => operations.handle(...args) }, administration: { handle: (...args) => administration.handle(...args) }, readiness: async () => ({ ready: true, reason: 'schema_compatible' }), identity: { handle: (...args) => identity.handle(...args) }, competition: { handle: (...args) => http.handle(...args) } });
   server.listen(0, '127.0.0.1'); await once(server, 'listening'); const origin = `http://127.0.0.1:${server.address().port}`;
   identity = await createIdentityRuntime({ pool: authPool, runtimePool: appPool, config: { origin, secret: randomBytes(48).toString('base64url'), environment: 'test' }, sendMail: async (m) => mails.push(m) });
   http = createCompetitionHttp(store, identity, origin, (line) => logs.push(line));
@@ -258,7 +259,7 @@ export async function runCompetitionCases(t, admin, connection) {
       await assert.rejects(appPool.query(query), e => e.code === '42501'); await assert.rejects(authPool.query(query), e => e.code === '42501');
     }
     const functions = await admin.query("SELECT p.proname, p.proconfig, pg_get_userbyid(p.proowner) AS owner, has_function_privilege('lde_runtime',p.oid,'EXECUTE') AS runtime, has_function_privilege('lde_identity',p.oid,'EXECUTE') AS identity FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='lde_competition'");
-    assert.deepEqual(functions.rows.filter(r => r.runtime).map(r => r.proname).sort(), ['acknowledge_contract','administration_records','amend_published_motion','ballot_cast','ballot_issue','ballot_public_key','ballot_tally','contract_visible','contract_workspace','offer_contract','operation_records','operation_state','publish_event_admin','publish_motion','publish_ruleset','ruleset_records','save_contract','save_event_admin','save_motion','save_operation','save_ruleset','save_series']);
+    assert.deepEqual(functions.rows.filter(r => r.runtime).map(r => r.proname).sort(), ['acknowledge_contract','administration_records','amend_published_motion','ballot_cast','ballot_issue','ballot_public_key','ballot_tally','contract_visible','contract_workspace','offer_contract','operation_records','operation_state','public_catalog','publish_event_admin','publish_motion','publish_ruleset','ruleset_records','save_contract','save_event_admin','save_motion','save_operation','save_ruleset','save_series']);
     assert.ok(functions.rows.every(r => !r.identity && r.owner === 'lde_guard' && r.proconfig[0] === 'search_path=pg_catalog, pg_temp'));
     assert.equal((await admin.query("SELECT count(*)::int AS n FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace, LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a WHERE n.nspname='lde_competition' AND a.grantee=0 AND a.privilege_type='EXECUTE'")).rows[0].n, 0);
     const tables = await admin.query("SELECT c.relname,c.relrowsecurity,c.relforcerowsecurity,has_table_privilege('lde_runtime',c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE') AS runtime FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='lde_competition' AND c.relkind='r'");

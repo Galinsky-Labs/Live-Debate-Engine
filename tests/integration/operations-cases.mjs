@@ -158,6 +158,17 @@ export async function runOperationsCases(t, { x, appPool, admin }) {
     assert.equal(onboarding.status, 409); assert.equal(onboarding.data.error, 'payment_provider_unconfigured');
   });
 
+  await t.test('E33/E37 public catalog exposes only published, non-identifying data without credentials', async () => {
+    const listed = await fetch(`${x.origin}/api/public/v1/tenants/${f.tenantId}/events`).then((r) => r.json());
+    assert.equal(listed.apiVersion, 'public-v1');
+    const event = listed.events.find((e) => e.title === 'Synthetic Housing Debate');
+    assert.ok(event, JSON.stringify(listed)); assert.equal(event.motion.revision, 3);
+    assert.equal(JSON.stringify(listed).includes(organizer.principalId), false);
+    const detail = await fetch(`${x.origin}/api/public/v1/tenants/${f.tenantId}/events/${event.eventId}/package`).then((r) => r.json());
+    assert.match(detail.manifest.sha256, /^[a-f0-9]{64}$/);
+    assert.equal((await fetch(`${x.origin}/api/public/v1/tenants/${f.tenantId}/events/${randomUUID()}`)).status, 404);
+  });
+
   await t.test('direct SQL cannot bypass the stream/action allow-list', async () => {
     const call = (action, stream = 'roster') => withCredential(appPool, organizer.token, (client) => client.query('SELECT lde_competition.save_operation($1,$2,$3,$4,$5,0,$6,$7,$8)',
       [f.tenantId, f.eventId, stream, action, randomUUID(), '{}', 'b'.repeat(64), randomUUID()]));
