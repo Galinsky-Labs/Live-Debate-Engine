@@ -108,7 +108,9 @@
       "id": "E-09",
       "title": "Casting, teams, rosters, and judge assignments",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        25
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -117,7 +119,9 @@
       "id": "E-10",
       "title": "Eligibility, releases, and legal-document acceptance",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        25
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -126,7 +130,9 @@
       "id": "E-11",
       "title": "Scheduling, production preparation, and communications",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        25
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -135,7 +141,9 @@
       "id": "E-12",
       "title": "Audience recruitment, registration, and admission",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        25
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
