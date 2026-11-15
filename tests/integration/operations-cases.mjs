@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { withCredential } from '../../dist/packages/identity/src/broker.js';
+import { blind, unblind } from '../../dist/packages/competition/src/operations/ballot-crypto.js';
 
 /** E09+ operation streams through real HTTP, provider sessions and database authorization. */
 export async function runOperationsCases(t, { x, appPool, admin }) {
@@ -82,6 +83,65 @@ export async function runOperationsCases(t, { x, appPool, admin }) {
     assert.equal((await moderator.client.call(`${base}/questions`)).data.records[0].snapshot.data.state.questions[0].author, outsider.principalId);
     const media = await post(x.organizer, 'media', randomUUID(), 'openRoom', {}, 0);
     assert.equal(media.status, 404); // organizer is not the producer; media.control is producer-only
+  });
+
+  await t.test('E20-E23 secret ballot: blind issuance, anonymous casting, pairing and verified tally', async () => {
+    const moderator = await x.register('ballot-moderator', 'moderator'); const producer = await x.register('producer', 'producer');
+    const poll = randomUUID(); const ballots = `/api/tenants/${f.tenantId}/events/${f.eventId}/ballots/${poll}`;
+    const locked = await post(organizer, 'poll', poll, 'lockElectorate', { principalIds: [outsider.principalId] }, 0);
+    assert.equal(locked.status, 200, JSON.stringify(locked.data));
+    assert.equal(locked.data.current.snapshot.data.state.sealedKey, null); assert.equal(locked.data.current.redacted, true);
+    const key = (await outsider.client.call(`${ballots}/key`)).data.publicKey;
+    const token = randomUUID().replaceAll('-', '') + randomUUID().replaceAll('-', '');
+    const blinded = blind(token, key);
+    assert.equal((await a.client.call(`${ballots}/issue`, { method: 'POST', body: { blinded: blinded.blinded } })).status, 404); // not an elector
+    const issued = await outsider.client.call(`${ballots}/issue`, { method: 'POST', body: { blinded: blinded.blinded } });
+    assert.equal(issued.status, 200, JSON.stringify(issued.data));
+    assert.equal((await outsider.client.call(`${ballots}/issue`, { method: 'POST', body: { blinded: blind(token, key).blinded } })).status, 409);
+    const signature = unblind(issued.data.blindSignature, blinded.r, key);
+    const cast = (round, choice, sig = signature) => fetch(`${x.origin}${ballots}/cast`, { method: 'POST', headers: { origin: x.origin, 'content-type': 'application/json' }, body: JSON.stringify({ token, signature: sig, round, choice }) }).then(async (r) => ({ status: r.status, data: await r.json() }));
+    assert.equal((await cast('pre', 'against')).status, 409); // round not open
+    assert.equal((await post(moderator, 'poll', poll, 'open', { round: 'pre' }, 1)).status, 200);
+    assert.equal((await cast('pre', 'against', signature.slice(0, -3) + 'AAA')).status, 403);
+    const receipt = await cast('pre', 'against'); assert.equal(receipt.status, 200); assert.match(receipt.data.receipt, /^[a-f0-9]{64}$/);
+    assert.equal((await cast('pre', 'for')).status, 409); // one ballot per round per credential
+    const withCookie = await outsider.client.call(`${ballots}/cast`, { method: 'POST', body: { token, signature, round: 'pre', choice: 'for' } });
+    assert.equal(withCookie.status, 400);
+    for (const [type, round] of [['close', 'pre'], ['open', 'post']]) assert.equal((await post(moderator, 'poll', poll, type, { round }, type === 'close' ? 2 : 3)).status, 200);
+    assert.equal((await cast('post', 'for')).status, 200);
+    assert.equal((await post(moderator, 'poll', poll, 'close', { round: 'post' }, 4)).status, 200);
+    const stored = await admin.query('SELECT * FROM lde_competition.ballots WHERE poll_id=$1', [poll]);
+    assert.equal(stored.rowCount, 2); assert.equal(JSON.stringify(stored.rows).includes(outsider.principalId), false);
+    const board = await outsider.client.call(`${ballots}/receipts`);
+    assert.ok(board.data.receipts.includes(receipt.data.receipt));
+    assert.equal((await outsider.client.call(`${ballots}/tally`)).status, 404);
+    const results = randomUUID();
+    const computed = await post(producer, 'results', results, 'computeAudience', { pollId: poll, paperEntityId: null }, 0);
+    assert.equal(computed.status, 200, JSON.stringify(computed.data));
+    const verdict = computed.data.current.snapshot.data.state.audience.verdict;
+    assert.equal(verdict.cohort, 1); assert.equal(verdict.decision, 'for'); assert.deepEqual(verdict.gain, { for: 1, against: -1 });
+    await assert.rejects(admin.query('UPDATE lde_competition.ballots SET choice=$1 WHERE poll_id=$2', ['for', poll]));
+
+    // E-24..E-26: seated judge scores privately; verifier records the panel verdict from stored cards.
+    const judge = await x.register('judge', 'judge'); const oversight = await x.register('oversight', 'oversight');
+    const panel = randomUUID(); const card = randomUUID();
+    const rubric = [{ code: 'argument', label: 'Argument', weightBps: 10000, minimum: 0, maximum: 10 }];
+    const caps = { penaltyMaxPerFinding: 2, penaltyTotalCap: 4, bonusMaxPerFinding: 2, bonusTotalCap: 4 };
+    assert.equal((await post(organizer, 'panel', panel, 'configure', { rubric, caps, aggregation: 'mean', judges: [judge.principalId] }, 0)).status, 200);
+    assert.equal((await post(organizer, 'panel', panel, 'open', { confirm: true }, 1)).status, 200);
+    const injected = await post(judge, 'scorecard', card, 'submit', { panelId: panel, panel: { rubric: [] }, entries: { for: { argument: 8 }, against: { argument: 6 } }, adjustments: [], notes: '' }, 0);
+    assert.equal(injected.status, 400);
+    const scored = await post(judge, 'scorecard', card, 'submit', { panelId: panel, entries: { for: { argument: 8 }, against: { argument: 6 } }, adjustments: [], notes: 'Synthetic' }, 0);
+    assert.equal(scored.status, 200, JSON.stringify(scored.data)); assert.equal(scored.data.current.view.status, 'submitted');
+    assert.equal((await post(producer, 'scorecard', randomUUID(), 'submit', { panelId: panel, entries: { for: {}, against: {} }, adjustments: [], notes: '' }, 0)).status, 404);
+    assert.equal((await post(organizer, 'panel', panel, 'close', {}, 2)).status, 200);
+    const judged = await post(producer, 'results', results, 'recordJudges', { panelId: panel }, 1);
+    assert.equal(judged.status, 200, JSON.stringify(judged.data));
+    const state = judged.data.current.snapshot.data.state;
+    assert.equal(state.judges.verdict.decision, 'for'); assert.equal(state.judges.verdict.submitted, 1);
+    assert.equal((await post(producer, 'results', results, 'verify', { resultsHash: state.resultsHash, confirm: true }, 2)).status, 200);
+    assert.equal((await post(oversight, 'results', results, 'verify', { resultsHash: state.resultsHash, confirm: true }, 3)).status, 200);
+    assert.equal((await post(producer, 'results', results, 'certify', { resultsHash: state.resultsHash }, 4)).status, 422);
   });
 
   await t.test('direct SQL cannot bypass the stream/action allow-list', async () => {

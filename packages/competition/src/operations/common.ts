@@ -3,12 +3,14 @@ import { canonicalJson } from '../../../contracts/src/canonical.js';
 
 /** Domain rule violation. `status` maps to HTTP; messages never contain caller data. */
 export class OperationError extends Error {
-  constructor(readonly code: string, readonly status: 400 | 403 | 409 | 422 = 422) { super(code); this.name = 'OperationError'; }
+  constructor(readonly code: string, readonly status: 400 | 403 | 404 | 409 | 422 = 422) { super(code); this.name = 'OperationError'; }
 }
-export function fail(code: string, status: 400 | 403 | 409 | 422 = 422): never { throw new OperationError(code, status); }
+export function fail(code: string, status: 400 | 403 | 404 | 409 | 422 = 422): never { throw new OperationError(code, status); }
 
 export type Json = null | boolean | number | string | readonly Json[] | { readonly [key: string]: Json };
-export type Context = Readonly<{ actor: string; now: string }>;
+export type Context = Readonly<{ actor: string; now: string; scope?: Readonly<{ tenantId: string; eventId: string; entityId: string }> }>;
+/** Minimal query surface handed to provider/prepare hooks inside the caller's credential transaction. */
+export type Queryable = Readonly<{ query: <R extends Record<string, unknown> = Record<string, unknown>>(sql: string, values?: unknown[]) => Promise<{ rows: R[] }> }>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 export function uuid(value: unknown, label = 'id'): string {

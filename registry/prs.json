@@ -229,7 +229,9 @@
       "id": "E-20",
       "title": "Secret-ballot service",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        27
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -238,7 +240,9 @@
       "id": "E-21",
       "title": "Poll orchestration and electorate locking",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        27
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -247,7 +251,9 @@
       "id": "E-22",
       "title": "Deterministic outcome calculation",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        27
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -256,7 +262,9 @@
       "id": "E-23",
       "title": "Paper/keypad fallback and reconciliation",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        27
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -265,7 +273,9 @@
       "id": "E-24",
       "title": "Human judging workspace",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        27
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -274,7 +284,9 @@
       "id": "E-25",
       "title": "Rubric, penalties, virtues, and aggregation",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        27
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -283,7 +295,9 @@
       "id": "E-26",
       "title": "Result verification, certification, and announcement",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        27
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
