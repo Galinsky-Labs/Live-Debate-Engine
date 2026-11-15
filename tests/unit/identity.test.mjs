@@ -21,6 +21,14 @@ test('mail modes are explicit and local file delivery cannot be enabled on produ
   for (const env of [{}, { LDE_IDENTITY_MAIL_MODE: 'local-file' }, { LDE_IDENTITY_MAIL_MODE: 'resend' }]) assert.throws(() => identityMailer(config, env));
   assert.throws(() => identityMailer(identityConfig('https://debates.example', secret, 'development'), { LDE_IDENTITY_MAIL_MODE: 'local-file' }));
 });
+test('disabled mail mode starts but never delivers or logs the link', async () => {
+  const lines = []; const warn = console.warn; console.warn = (line) => lines.push(line);
+  try {
+    const deliver = identityMailer(config, { LDE_IDENTITY_MAIL_MODE: 'disabled' });
+    await assert.rejects(deliver(message), (error) => error.message === 'Identity mail delivery unavailable');
+  } finally { console.warn = warn; }
+  assert.equal(lines.length, 1); assert.doesNotMatch(lines[0], /token|fixture|https:/);
+});
 test('fixed HTTPS mail transport uses bounded requests and stable idempotency without accepting arbitrary destinations', async () => {
   const calls = [];
   const deliver = identityMailer(config, { LDE_IDENTITY_MAIL_MODE: 'resend', RESEND_API_KEY: `re_${'t'.repeat(30)}`, LDE_IDENTITY_MAIL_FROM: 'debates@example.invalid' }, async (url, request) => { calls.push({ url, request }); return new Response('{}', { status: 200 }); });

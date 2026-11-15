@@ -1,5 +1,11 @@
 # Cloud access verification
 
+## Current (2026-11-15)
+
+The engine is deployed to the Galinsky Laboratories Render workspace and Neon organization; see [DEPLOYMENT.md](DEPLOYMENT.md) and [RESOURCES.md](RESOURCES.md). The Neon projects `winter-pond-37009599` and `hidden-tree-79062557` recorded below are **not** in the Galinsky Laboratories organization and must not be used.
+
+## Historical observation (2026-10-11, superseded)
+
 ## Observed 2026-10-11 after the owner connected Render and Neon
 
 Both provider connectors now expose callable actions and authenticated reads succeeded. Earlier notes that provider actions were unavailable are superseded by this record. No reconnection or pasted credentials are needed.
@@ -10,7 +16,7 @@ Both provider connectors now expose callable actions and authenticated reads suc
 | UBC Debates Neon | Project `hidden-tree-79062557`, ADMIN permission, AWS `us-east-2`, PostgreSQL 18. Exact branch `br-muddy-glade-b5oyws99` exists, is named `production`, is ready and is the default branch. | No application SQL, migrations, schema inventory, credentials, end-to-end connectivity or production acceptance tested on this branch. |
 | Render | Authenticated workspace and service inventory reads succeeded in `tea-db23jkks728c73av263g`. No listed service uses either new repository. | Current connector actions do not expose project-container reads or project/environment assignment. The supplied `prj-db5jt4l9fdbs73d4tgug` and `prj-db5jtaqd0e5s73fo0qkg` remain owner-supplied targets, not independently verified project membership. |
 
-The listed `public-debate-engine-preview` service uses `neophilism/Debate-Engine`, the unrelated politician-debate product. It was not modified or reused. No Render service, Neon branch, schema, key, secret, identity provider, or production setting was changed in this verification.
+The listed `public-debate-engine-preview` service uses `Galinsky-Labs/Debate-Engine`, the unrelated politician-debate product. It was not modified or reused. No Render service, Neon branch, schema, key, secret, identity provider, or production setting was changed in this verification.
 
 ## Development safeguards
 

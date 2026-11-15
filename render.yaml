@@ -1,0 +1,38 @@
+# Render blueprint record for the hosted engine (free plan, Ohio). Secrets are sync:false and
+# are set only in the Render dashboard/API, never committed.
+services:
+  - type: web
+    name: live-debate-engine
+    runtime: node
+    plan: free
+    region: ohio
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /api/health
+    buildCommand: npm ci --ignore-scripts --include=dev && npm run build
+    # Release step (owner credential) runs first; the wrapper strips that credential before serving.
+    startCommand: npm run start:hosted
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LDE_PROVISION_LOGIN_ROLES
+        value: "1"
+      - key: LDE_IDENTITY_ENABLED
+        value: "1"
+      - key: LDE_IDENTITY_ORIGIN
+        value: https://live-debate-engine.onrender.com
+      # disabled = degraded mode until a verified Resend domain exists; switch to resend then.
+      - key: LDE_IDENTITY_MAIL_MODE
+        value: disabled
+      - key: LDE_MIGRATION_DATABASE_URL # Neon live-debate-engine owner, direct host
+        sync: false
+      - key: DATABASE_URL # lde_app login role, pooled host
+        sync: false
+      - key: LDE_IDENTITY_DATABASE_URL # lde_auth login role, pooled host
+        sync: false
+      - key: LDE_IDENTITY_SECRET
+        sync: false
+      - key: RESEND_API_KEY # owner to-do
+        sync: false
+      - key: LDE_IDENTITY_MAIL_FROM # owner to-do, verified sender
+        sync: false

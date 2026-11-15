@@ -30,6 +30,7 @@
     "dev": "npm run build && node --env-file-if-exists=.env dist/apps/api/src/main.js",
     "start": "node --env-file-if-exists=.env dist/apps/api/src/main.js",
     "migrate": "node --env-file-if-exists=.env.migrations dist/scripts/migrate.js",
+    "start:hosted": "node dist/scripts/migrate.js && env -u LDE_MIGRATION_DATABASE_URL -u DATABASE_URL_UNPOOLED node dist/apps/api/src/main.js",
     "artifacts": "node scripts/artifacts.mjs",
     "provision:local": "node --env-file=.env --env-file=.env.migrations dist/scripts/provision-local.js",
     "access:admin": "node --env-file-if-exists=.env.migrations dist/scripts/access-admin.js",

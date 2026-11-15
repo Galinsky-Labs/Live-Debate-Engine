@@ -2,7 +2,7 @@
 
 Approved by the product owner on 2026-10-11. The original working names Debate Competition Engine and UBC Debate Platform are replaced by **Live Debate Engine** and **UBC Debates**. Scope and dependency order are otherwise preserved.
 
-E identifiers belong to `neophilism/Live-Debate-Engine`; U identifiers belong to `neophilism/UBC-Debates`. There are 50 engine steps and 4 branded steps. IDs are not GitHub PR numbers. Actual PR mappings live in `docs/pr-map.json` and must be based on observed GitHub records.
+E identifiers belong to `Galinsky-Labs/Live-Debate-Engine`; U identifiers belong to `Galinsky-Labs/UBC-Debates`. There are 50 engine steps and 4 branded steps. IDs are not GitHub PR numbers. Actual PR mappings live in `docs/pr-map.json` and must be based on observed GitHub records.
 
 Every change requires implementation or specification artifacts appropriate to its scope, tests, documentation, acceptance evidence, and a separate security-review step. Required CI must pass on the exact proposed head; GitHub must confirm mergeability. Verify merged-main checks before chaining dependent work. A self-performed security review is not an independent review and cannot satisfy a required independent-review rule. Never weaken a required gate to merge.
 
