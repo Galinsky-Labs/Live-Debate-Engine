@@ -16,3 +16,7 @@ All units use the operation-stream architecture from [E09_E12_OPERATIONS.md](E09
 
 - No media, recording-storage, ASR or streaming vendor is configured. Real rooms, join tokens, recordings and automatic transcripts require choosing a provider and adding its keys (e.g. LiveKit/Daily/Mux, an ASR vendor). Until then those operations fail closed.
 - Console UIs are view models; the React console screens are follow-up UI work.
+
+## E-15 console screens (follow-up)
+
+`/console?tenant=…&event=…&live=<live entity>&floor=<floor entity>&role=moderator|timekeeper|debater|producer` renders the React console (`packages/ui/src/consoles.tsx`). It polls the `live` and `floor` streams every 2 s, shows phase, speaker, an accessible countdown with grace/overtime badges and pending points, and offers only the role's actions (advance/suspend/rule points; start/pause/resume/stop/adjust; request floor/raise or answer points; readiness/announce/close). Each button sends one typed command with the latest revision; the server re-authorizes every command. `console-model.ts` is browser-safe and unit-tested against the server reducers' phase order and timer arithmetic.
