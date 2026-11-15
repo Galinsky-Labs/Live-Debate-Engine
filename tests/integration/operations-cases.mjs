@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
+import { administerAccess } from '../../dist/packages/identity/src/administration.js';
 import { randomUUID } from 'node:crypto';
 import { withCredential } from '../../dist/packages/identity/src/broker.js';
 import { blind, unblind } from '../../dist/packages/competition/src/operations/ballot-crypto.js';
+import { WebhookWorker } from '../../dist/packages/public/src/webhooks.js';
+import { verifyWebhook } from '../../dist/packages/public/src/http.js';
 
 /** E09+ operation streams through real HTTP, provider sessions and database authorization. */
 export async function runOperationsCases(t, { x, appPool, admin }) {
@@ -167,6 +170,43 @@ export async function runOperationsCases(t, { x, appPool, admin }) {
     const detail = await fetch(`${x.origin}/api/public/v1/tenants/${f.tenantId}/events/${event.eventId}/package`).then((r) => r.json());
     assert.match(detail.manifest.sha256, /^[a-f0-9]{64}$/);
     assert.equal((await fetch(`${x.origin}/api/public/v1/tenants/${f.tenantId}/events/${randomUUID()}`)).status, 404);
+  });
+
+  await t.test('E34-E37 editorial publishing, white-label branding and signed webhook delivery', async () => {
+    const listed = await fetch(`${x.origin}/api/public/v1/tenants/${f.tenantId}/events`).then((r) => r.json());
+    const published = listed.events.find((e) => e.title === 'Synthetic Housing Debate');
+    const ed = `/api/tenants/${f.tenantId}/events/${published.eventId}/operations/editorial`;
+    // Webhook subscription first, so the editorial snapshots are enqueued.
+    const hook = randomUUID();
+    const created = await organizer.client.call(`/api/tenants/${f.tenantId}/webhooks/${hook}`, { method: 'POST', body: { url: 'https://hooks.example.com/lde', kinds: ['operation:editorial'], active: true, rotateSecret: true } });
+    assert.equal(created.status, 200, JSON.stringify(created.data)); assert.match(created.data.signingSecret, /^[A-Za-z0-9_-]{43}$/);
+    assert.equal((await outsider.client.call(`/api/tenants/${f.tenantId}/webhooks/${randomUUID()}`, { method: 'POST', body: { url: 'https://hooks.example.com/x', kinds: ['*'], active: true, rotateSecret: true } })).status, 404);
+    assert.equal((await organizer.client.call(`/api/tenants/${f.tenantId}/webhooks/${randomUUID()}`, { method: 'POST', body: { url: 'http://hooks.example.com/x', kinds: ['*'], active: true, rotateSecret: true } })).status, 400);
+    const article = randomUUID(); const editor = await x.register('editor', 'producer');
+    await administerAccess(admin, 'role', { principalId: editor.principalId, tenantId: f.tenantId, eventId: published.eventId, role: 'producer', expiresAt: null, revoked: 'no', reason: 'Synthetic editorial reviewer role' });
+    const step = (u, type, payload, rev) => u.client.call(`${ed}/${article}`, { method: 'POST', body: { commandId: randomUUID(), expectedRevision: rev, type, payload } });
+    assert.equal((await step(organizer, 'draft', { articleId: article, kind: 'summary', headline: 'Parking debate summary', body: 'A synthetic summary of the parking minimums debate.', channels: ['public-site'] }, 0)).status, 200);
+    assert.equal((await step(organizer, 'submit', { articleId: article }, 1)).status, 200);
+    assert.equal((await step(organizer, 'approve', { articleId: article, note: 'self' }, 2)).status, 403);
+    assert.equal((await step(editor, 'approve', { articleId: article, note: 'Checked' }, 2)).status, 200);
+    assert.equal((await step(editor, 'publish', { articleId: article, publishAt: new Date(Date.now() - 1000).toISOString() }, 3)).status, 200);
+    const detail = await fetch(`${x.origin}/api/public/v1/tenants/${f.tenantId}/events/${published.eventId}`).then((r) => r.json());
+    assert.equal(detail.event.editorial[0].headline, 'Parking debate summary');
+    // Branding
+    const brand = { name: 'Synthetic Forum', shortName: 'SF', tagline: 'Test', locale: 'en-CA', supportEmail: null, colors: { background: '#ffffff', text: '#111111', primary: '#174f79', accent: '#a17c31' }, typography: 'sans', customDomains: [], footer: '', features: { audienceQuestions: true, publicResults: true, transcripts: false } };
+    assert.equal((await organizer.client.call(`/api/tenants/${f.tenantId}/branding`, { method: 'POST', body: { expectedRevision: 0, brand: { ...brand, colors: { ...brand.colors, text: '#eeeeee' } } } })).status, 400);
+    assert.equal((await organizer.client.call(`/api/tenants/${f.tenantId}/branding`, { method: 'POST', body: { expectedRevision: 0, brand } })).status, 200);
+    assert.equal((await organizer.client.call(`/api/tenants/${f.tenantId}/branding`, { method: 'POST', body: { expectedRevision: 0, brand } })).status, 409);
+    assert.equal((await fetch(`${x.origin}/api/public/v1/tenants/${f.tenantId}/brand`).then((r) => r.json())).brand.name, 'Synthetic Forum');
+    // Webhook delivery: 4 editorial snapshots (draft, submit, approve, publish) were enqueued.
+    const sent = [];
+    const worker = new WebhookWorker(appPool, x.ballotSecret, async (url, init) => { sent.push(init); return { status: 200, body: null }; }, async () => ['93.184.216.34']);
+    assert.equal(await worker.tick(20), 4);
+    assert.ok(sent.every((init) => verifyWebhook(created.data.signingSecret, init.body, init.headers['x-lde-signature'], Math.floor(Date.now() / 1000))));
+    assert.ok(sent.every((init) => !init.body.includes('Parking debate summary')));
+    assert.equal(await worker.tick(20), 0);
+    const list = await organizer.client.call(`/api/tenants/${f.tenantId}/webhooks`);
+    assert.equal(list.data.webhooks[0].pending, 0);
   });
 
   await t.test('direct SQL cannot bypass the stream/action allow-list', async () => {
