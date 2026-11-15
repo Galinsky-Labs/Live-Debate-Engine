@@ -80,7 +80,9 @@ export class OperationStore {
         if (current.snapshot.revision !== expected && current.snapshot.revision !== expected + 1) fail('revision_conflict', 409);
         state = current.snapshot.revision === expected ? current.snapshot.data.state : null;
       }
-      const next = state === null ? { state: {}, action } : applyCommand(stream, state, body.type, body.payload, context);
+      let payload: unknown = body.payload;
+      if (state !== null && stream.prepare) payload = await stream.prepare(String(body.type), body.payload, state, context);
+      const next = state === null ? { state: {}, action } : applyCommand(stream, state, body.type, payload, context);
       const digest = createHash('sha256').update(canonicalJson({ type: body.type, payload: body.payload ?? null }), 'utf8').digest('hex');
       const saved = verified((await client.query<{ result: unknown }>('SELECT lde_competition.save_operation($1,$2,$3,$4,$5,$6,$7,$8,$9) AS result',
         [tenant, event, stream.name, next.action, entity, expected, JSON.stringify(next.state), digest, commandId])).rows[0]?.result);

@@ -62,6 +62,28 @@ export async function runOperationsCases(t, { x, appPool, admin }) {
     assert.equal(view.data.current.view.registration.status, 'admitted');
   });
 
+  await t.test('E13-E19 live streams enforce role-specific actions over real HTTP', async () => {
+    const moderator = await x.register('moderator', 'moderator'); const timekeeper = await x.register('timekeeper', 'timekeeper');
+    const live = randomUUID(); const floor = randomUUID(); const questions = randomUUID();
+    assert.equal((await post(moderator, 'live', live, 'advance', { from: 'preparation', to: 'readiness' }, 0)).status, 200);
+    assert.equal((await post(a, 'live', live, 'advance', { from: 'readiness', to: 'pre-vote' }, 1)).status, 404);
+    assert.equal((await post(moderator, 'live', live, 'announce', { from: 'readiness', to: 'pre-vote' }, 1)).status, 404);
+    assert.equal((await post(moderator, 'live', live, 'advance', { from: 'readiness', to: 'pre-vote' }, 1)).status, 422);
+    const started = await post(timekeeper, 'floor', floor, 'startSpeech', { speakerId: a.principalId, segment: 'opening-for', seconds: 420, graceSeconds: 10, protectedSeconds: 0 }, 0);
+    assert.equal(started.status, 200, JSON.stringify(started.data));
+    assert.equal((await post(moderator, 'floor', floor, 'startSpeech', { speakerId: b.principalId, segment: 'x', seconds: 1, graceSeconds: 0, protectedSeconds: 0 }, 1)).status, 409);
+    const point = await post(b, 'floor', floor, 'raisePoint', { pointId: randomUUID(), kind: 'order' }, 1);
+    assert.equal(point.status, 200, JSON.stringify(point.data));
+    assert.equal((await post(outsider, 'floor', floor, 'requestFloor', {}, 2)).status, 404);
+    assert.equal((await post(moderator, 'questions', questions, 'setOpen', { open: true }, 0)).status, 200);
+    const asked = await post(outsider, 'questions', questions, 'submit', { questionId: randomUUID(), text: 'What evidence supports this?', directedTo: 'both' }, 1);
+    assert.equal(asked.status, 200, JSON.stringify(asked.data)); assert.equal(asked.data.current.view.mine.length, 1);
+    assert.equal((await outsider.client.call(`${base}/questions`)).status, 404);
+    assert.equal((await moderator.client.call(`${base}/questions`)).data.records[0].snapshot.data.state.questions[0].author, outsider.principalId);
+    const media = await post(x.organizer, 'media', randomUUID(), 'openRoom', {}, 0);
+    assert.equal(media.status, 404); // organizer is not the producer; media.control is producer-only
+  });
+
   await t.test('direct SQL cannot bypass the stream/action allow-list', async () => {
     const call = (action, stream = 'roster') => withCredential(appPool, organizer.token, (client) => client.query('SELECT lde_competition.save_operation($1,$2,$3,$4,$5,0,$6,$7,$8)',
       [f.tenantId, f.eventId, stream, action, randomUUID(), '{}', 'b'.repeat(64), randomUUID()]));
