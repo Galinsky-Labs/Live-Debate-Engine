@@ -11,6 +11,7 @@ export const ACTIONS = Object.freeze([
   'scorecard.read-own', 'scorecard.write-own', 'result.verify', 'result.publish',
   'prize.manage', 'payout.approve', 'dispute.review', 'ballot.read-sealed',
   'tally.write', 'transcript.append', 'payout.execute', 'object.scan', 'ruleset.manage', 'contract.manage', 'contract.acknowledge',
+  'participant.self', 'floor.participate',
 ] as const);
 export type Action = typeof ACTIONS[number];
 export type Role = typeof ROLES[number];
@@ -94,6 +95,9 @@ const rules: Readonly<Record<Action, Rule>> = Object.freeze({
   'transcript.append': rule('event', [], ['transcription-worker']),
   'payout.execute': rule('event', [], ['payout-worker']),
   'object.scan': rule('event', [], ['upload-scanner']),
+  // Self-service operations: the reducer binds every change to the authenticated principal.
+  'participant.self': rule('event', ['producer', 'moderator', 'timekeeper', 'debater', 'judge', 'audience', 'finance', 'oversight'], [], true),
+  'floor.participate': rule('event', ['debater'], [], true),
 });
 export function describeAccessPolicy() { return rules; }
 const nonStaff = new Set<Role>(['audience', 'debater']);
