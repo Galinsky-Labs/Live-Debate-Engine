@@ -152,7 +152,9 @@
       "id": "E-13",
       "title": "Authoritative event state machine",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        26
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -161,7 +163,9 @@
       "id": "E-14",
       "title": "Timers, floor control, and points of order",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        26
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -170,7 +174,9 @@
       "id": "E-15",
       "title": "Moderator, timekeeper, producer, and debater consoles",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        26
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -179,7 +185,9 @@
       "id": "E-16",
       "title": "Remote participation and media-room controls",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        26
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -188,7 +196,9 @@
       "id": "E-17",
       "title": "Recording and broadcast production",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        26
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -197,7 +207,9 @@
       "id": "E-18",
       "title": "Transcription, speaker attribution, and corrections",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        26
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -206,7 +218,9 @@
       "id": "E-19",
       "title": "Audience Q&A and conduct controls",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        26
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []

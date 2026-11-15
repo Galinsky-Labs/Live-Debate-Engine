@@ -14,6 +14,8 @@ export type StreamDefinition<S> = Readonly<{
   commands: Readonly<Record<string, CommandDefinition<S>>>;
   /** Filtered projection for callers without the stream read action (never the full state). */
   view?: (state: S, actor: string) => unknown;
+  /** Optional provider side effect run before the reducer; returns the payload the reducer records. */
+  prepare?: (type: string, payload: unknown, state: S, context: Context) => Promise<unknown>;
 }>;
 export type AnyStream = StreamDefinition<any>;
 
