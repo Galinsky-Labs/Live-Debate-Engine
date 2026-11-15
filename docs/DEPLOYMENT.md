@@ -36,6 +36,8 @@ This flow was exercised against a local PostgreSQL 16 cluster with a non-superus
 | `LDE_IDENTITY_SECRET` | generated, 64 base64url chars | Never committed. |
 | `LDE_IDENTITY_ORIGIN` | `https://live-debate-engine.onrender.com` | Canonical HTTPS origin. |
 | `LDE_IDENTITY_MAIL_MODE` | `disabled` until Resend is configured, then `resend` | Disabled mode never delivers or logs links. |
+| `LDE_BOOTSTRAP_TENANT_IDS` | comma-separated tenant UUIDs | Release step inserts them idempotently (UBC Debates tenant). Role grants still use `npm run access:admin`. |
+| `LDE_PUBLIC_CORS_ORIGINS` | `https://ubc-debates.onrender.com` | Browser origins allowed to read `/api/public/v1`. |
 | `RESEND_API_KEY`, `LDE_IDENTITY_MAIL_FROM` | Owner to-do | Needed for email verification and password reset. |
 
 Neon connection strings include `channel_binding=require`; the engine refuses that option (the driver can only prefer channel binding), so the stored URLs use `sslmode=require` only.

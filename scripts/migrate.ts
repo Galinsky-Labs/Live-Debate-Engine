@@ -18,6 +18,11 @@ try {
   try { applied = await applyMigrations(pool, await loadMigrations()); }
   finally { if (owner === 'managed') await finishManagedOwner(pool); }
   console.log(JSON.stringify({ event: 'migrations_applied', count: applied, owner }));
+  // Optional idempotent tenant bootstrap for hosted deployments (e.g. the UBC Debates tenant).
+  const tenants = (env.LDE_BOOTSTRAP_TENANT_IDS ?? '').split(',').map((value) => value.trim()).filter(Boolean);
+  if (tenants.length > 10 || tenants.some((value) => !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value))) throw new Error('Invalid tenant bootstrap list');
+  for (const tenant of tenants) await pool.query('INSERT INTO lde.tenants(id) VALUES ($1) ON CONFLICT (id) DO NOTHING', [tenant]);
+  if (tenants.length) console.log(JSON.stringify({ event: 'tenants_bootstrapped', count: tenants.length }));
   if (env.LDE_PROVISION_LOGIN_ROLES === '1') {
     if (!env.DATABASE_URL || !env.LDE_IDENTITY_DATABASE_URL) throw new Error('Runtime and identity URLs required');
     const provisioned = await provisionLoginRoles(pool, [
