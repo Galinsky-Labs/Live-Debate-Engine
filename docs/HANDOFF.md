@@ -31,3 +31,8 @@ The engine is deployed as Render free web service `live-debate-engine` backed by
 Local GitHub/npm DNS is blocked. E06 restored authenticated source/dependency/Chromium/PostgreSQL artifacts in the isolated working container. PostgreSQL is loopback-only and both destructive test harnesses refuse any database except local lde_ci. No cloud data or credentials were used. Local artifact downloads are not production provisioning.
 
 Production HTTPS, mail, trusted ingress/rate limits, backups and broader accessibility assessment remain release gates. U01 waits for E47; E48-E50 empirical promotion retains its approved U04 dependency. Update actual PR mappings/evidence without changing the 50-step engine denominator. Do not invent independent review, available funds, real participants, certification or unattended future work.
+
+
+## Status 2026-11-15
+
+E-08 through E-33 and E-37 are merged (see ../repo-development-progress.md and the per-range docs E09_E12_OPERATIONS.md, E13_E19_LIVE_OPERATIONS.md, E20_E23_VOTING.md, E27_E32_PRIZES_DISPUTES_PAYOUTS.md, E33_E37_PUBLIC_API.md). Hosted on Render (`live-debate-engine`, free, Ohio) with Neon project `live-debate-engine`; see DEPLOYMENT.md. Render auto-deploy did not fire on merges during this session; deploys were triggered through the API. Next: E-34 editorial workflow, E-35 entitlements, E-36 white-label configuration, then E-38+ (AI evaluation) which depends on rights-cleared data and owner decisions.
