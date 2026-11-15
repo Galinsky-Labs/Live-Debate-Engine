@@ -372,7 +372,9 @@
       "id": "E-33",
       "title": "Public event experience and searchable archive",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        29
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -384,7 +386,10 @@
       "prs": [],
       "dependsOn": [],
       "externalDependencies": [],
-      "externalPrerequisites": []
+      "externalPrerequisites": [],
+      "contributingPrs": [
+        29
+      ]
     },
     {
       "id": "E-35",
@@ -408,7 +413,9 @@
       "id": "E-37",
       "title": "Public API, SDK, webhooks, and Engine Room integration",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        29
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
