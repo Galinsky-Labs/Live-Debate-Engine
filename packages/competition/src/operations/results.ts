@@ -5,12 +5,23 @@ import { parseTally } from './ballots.js';
 import { judgeDecision, panelVerdict, type PanelVerdict } from './judging.js';
 import { loadPanel, type ScorecardState } from './scorecard.js';
 import { defineStream } from './stream.js';
+import { allowedMode, type AiReviewState, type QualificationState } from '../ai/streams.js';
 
 /** E-22 audience outcome and E-26 result verification, certification, announcement and correction. */
 export type AudienceResult = Readonly<{ pollId: string; electronic: TransitionMatrix; paper: TransitionMatrix; electorateDigest: string; issued: number; verdict: AudienceVerdict; computedAt: string; computedBy: string }>;
+export type AiJudge = Readonly<{ mode: 'advisory' | 'hybrid' | 'ai'; decision: 'for' | 'against' | 'tie'; outputHash: string; provider: string; recordedBy: string }>;
+/** E-43: effective judges' decision under the qualified execution mode. */
+export function effectiveJudges(panel: PanelVerdict | null, ai: AiJudge | null | undefined): 'for' | 'against' | 'tie' | 'inconclusive' | null {
+  if (!ai || ai.mode === 'advisory') return panel?.decision ?? null;
+  if (ai.mode === 'ai') return ai.decision;
+  if (!panel || panel.decision === 'inconclusive') return 'inconclusive';
+  const votes = [...panel.judges.map((j) => j.decision), ai.decision];
+  const f = votes.filter((v) => v === 'for').length; const a = votes.filter((v) => v === 'against').length;
+  return f > a ? 'for' : a > f ? 'against' : 'tie';
+}
 export type JudgesResult = Readonly<{ panelId: string; verdict: PanelVerdict; recused: number; computedAt: string; computedBy: string }>;
 export type ResultsState = Readonly<{
-  version: number; audience: AudienceResult | null; judges: JudgesResult | null;
+  version: number; audience: AudienceResult | null; judges: JudgesResult | null; ai?: AiJudge | null;
   advancement: Readonly<{ selectedSide: 'for' | 'against' | null; reason: string }> | null; resultsHash: string | null;
   verifications: readonly Readonly<{ by: string; at: string; hash: string }>[];
   status: 'computing' | 'certified' | 'announced'; certifiedAt: string | null; certifiedBy: string | null; announcedAt: string | null;
@@ -26,8 +37,8 @@ function matrix(value: unknown): TransitionMatrix {
 }
 /** Any input change resets verification; hash covers the exact inputs and verdicts. */
 function recompute(state: ResultsState, audienceTie: 'judges' | 'review' | 'rematch' = 'judges'): ResultsState {
-  const adv = state.audience ? advancement(state.audience.verdict.decision, state.judges?.verdict.decision ?? null, audienceTie) : null;
-  const resultsHash = state.audience || state.judges ? hashOf({ version: state.version, audience: state.audience, judges: state.judges, advancement: adv }) : null;
+  const adv = state.audience ? advancement(state.audience.verdict.decision, effectiveJudges(state.judges?.verdict ?? null, state.ai), audienceTie) : null;
+  const resultsHash = state.audience || state.judges ? hashOf({ version: state.version, audience: state.audience, judges: state.judges, advancement: adv, ...(state.ai ? { ai: state.ai } : {}) }) : null;
   return deepFreeze({ ...state, advancement: adv, resultsHash, verifications: [] });
 }
 function computing(state: ResultsState): ResultsState { if (state.status !== 'computing') fail('results_certified', 409); return state; }
@@ -44,6 +55,13 @@ export function applyResults(state: ResultsState, type: string, input: unknown, 
     case 'recordJudges': {
       const p = record(input, ['panelId', 'verdict', 'recused']);
       return recompute({ ...computing(state), judges: { panelId: uuid(p.panelId, 'panel'), verdict: p.verdict as PanelVerdict, recused: Number(p.recused), computedAt: context.now, computedBy: context.actor } });
+    }
+    case 'recordAiJudge': {
+      const p = record(input, ['mode', 'decision', 'outputHash', 'provider', 'qualified']);
+      if (p.qualified !== true) fail('execution_mode_not_qualified');
+      const mode = p.mode === 'advisory' || p.mode === 'hybrid' || p.mode === 'ai' ? p.mode : fail('invalid_mode', 400);
+      const decision = p.decision === 'for' || p.decision === 'against' || p.decision === 'tie' ? p.decision : fail('invalid_decision', 400);
+      return recompute({ ...computing(state), ai: { mode, decision, outputHash: String(p.outputHash), provider: String(p.provider), recordedBy: context.actor } });
     }
     case 'verify': {
       const p = record(input, ['resultsHash', 'confirm']);
@@ -87,6 +105,16 @@ export async function prepareResults(type: string, payload: unknown, db: Queryab
     }
     return { pollId, electronic: tally.paired, paper, electorateDigest: tally.electorateDigest, issued: tally.issued };
   }
+  if (type === 'recordAiJudge') {
+    const p = record(payload, ['mode', 'reviewId', 'qualificationId']);
+    const mode = p.mode === 'advisory' || p.mode === 'hybrid' || p.mode === 'ai' ? p.mode : fail('invalid_mode', 400);
+    const read = async <T>(stream: string, action: string, id: unknown) => ((await db.query<{ result: { records: { snapshot: { data: { state: T } } }[] } }>('SELECT lde_competition.operation_records($1,$2,$3,$4,$5,$6) AS result', [scope?.tenantId, scope?.eventId, stream, action, uuid(id, 'entity'), 2147483647])).rows[0]?.result.records[0]?.snapshot.data.state ?? fail(`unknown_${stream}`));
+    const review = await read<AiReviewState>('ai-review', 'result.verify', p.reviewId);
+    const qualification = await read<QualificationState>('qualification', 'event.read', p.qualificationId);
+    if (!review.artifact) fail('no_artifact');
+    if (qualification.provider !== review.artifact.provider || qualification.model !== review.artifact.model || qualification.version !== review.artifact.version) fail('artifact_provider_not_qualified');
+    return { mode, decision: review.artifact.decision, outputHash: review.artifact.outputHash, provider: `${review.artifact.provider}/${review.artifact.model}@${review.artifact.version}`, qualified: allowedMode(qualification, mode) };
+  }
   if (type === 'recordJudges') {
     const p = record(payload, ['panelId']);
     const panelId = uuid(p.panelId, 'panel');
@@ -105,7 +133,7 @@ export async function prepareResults(type: string, payload: unknown, db: Queryab
 const cmd = (type: string, action: 'result.verify' | 'result.publish') => ({ action, apply: (s: ResultsState, p: unknown, c: Context) => applyResults(s, type, p, c) });
 export const resultsStream = defineStream<ResultsState>({
   name: 'results', readAction: 'result.verify', initial: initialResults,
-  commands: { computeAudience: cmd('computeAudience', 'result.verify'), recordJudges: cmd('recordJudges', 'result.verify'), verify: cmd('verify', 'result.verify'),
+  commands: { computeAudience: cmd('computeAudience', 'result.verify'), recordJudges: cmd('recordJudges', 'result.verify'), recordAiJudge: cmd('recordAiJudge', 'result.verify'), verify: cmd('verify', 'result.verify'),
     certify: cmd('certify', 'result.publish'), announce: cmd('announce', 'result.publish'), reopen: cmd('reopen', 'result.publish') },
   prepare: (type, payload, _state, context, db) => prepareResults(type, payload, db, context.scope),
 });

@@ -20,6 +20,7 @@ import { disputesStream } from './disputes.js';
 import { payoutsStream } from './payouts.js';
 import { editorialStream } from './editorial.js';
 import { accessStream } from './access.js';
+import { aiReviewStream, datasetStream, qualificationStream } from '../ai/streams.js';
 
 /** Every operation stream served by the engine. The database allow-list must match. */
 export function operationStreams(secret: string): readonly AnyStream[] {
@@ -29,6 +30,7 @@ export function operationStreams(secret: string): readonly AnyStream[] {
     createPollStream(secret), paperStream, panelStream, scorecardStream, resultsStream,
     prizesStream, bracketStream, disputesStream, payoutsStream,
     editorialStream, accessStream,
+    datasetStream, qualificationStream, aiReviewStream,
   ]);
 }
 /** Stream definitions for static checks; the poll stream here uses a placeholder sealing secret. */
