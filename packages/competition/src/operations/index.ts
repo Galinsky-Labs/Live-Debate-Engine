@@ -14,6 +14,10 @@ import { paperStream } from './paper.js';
 import { resultsStream } from './results.js';
 import { panelStream } from './panel.js';
 import { scorecardStream } from './scorecard.js';
+import { prizesStream } from './prizes.js';
+import { bracketStream } from './bracket.js';
+import { disputesStream } from './disputes.js';
+import { payoutsStream } from './payouts.js';
 
 /** Every operation stream served by the engine. The database allow-list must match. */
 export function operationStreams(secret: string): readonly AnyStream[] {
@@ -21,6 +25,7 @@ export function operationStreams(secret: string): readonly AnyStream[] {
     rosterStream, eligibilityStream, scheduleStream, admissionStream,
     liveStream, floorStream, mediaStream, recordingStream, transcriptStream, questionsStream,
     createPollStream(secret), paperStream, panelStream, scorecardStream, resultsStream,
+    prizesStream, bracketStream, disputesStream, payoutsStream,
   ]);
 }
 /** Stream definitions for static checks; the poll stream here uses a placeholder sealing secret. */

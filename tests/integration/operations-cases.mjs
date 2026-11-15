@@ -144,6 +144,20 @@ export async function runOperationsCases(t, { x, appPool, admin }) {
     assert.equal((await post(producer, 'results', results, 'certify', { resultsHash: state.resultsHash }, 4)).status, 422);
   });
 
+  await t.test('E27-E31 prize, dispute and payout streams enforce finance/oversight/self roles', async () => {
+    const finance = await x.register('finance', 'finance');
+    const prizes = randomUUID(); const disputes = randomUUID(); const payouts = randomUUID();
+    assert.equal((await post(finance, 'prizes', prizes, 'fund', { currency: 'CAD', exponent: 2, budget: '100000' }, 0)).status, 200);
+    assert.equal((await post(organizer, 'prizes', prizes, 'fund', { currency: 'CAD', exponent: 2, budget: '999999' }, 1)).status, 404);
+    assert.equal((await post(organizer, 'disputes', disputes, 'setWindow', { closesAt: new Date(Date.now() + 3600000).toISOString() }, 0)).status, 200);
+    const filed = await post(a, 'disputes', disputes, 'file', { disputeId: randomUUID(), subject: 'results', reason: 'counting-error', statement: 'Synthetic dispute statement for integration testing.', evidence: [] }, 1);
+    assert.equal(filed.status, 200, JSON.stringify(filed.data)); assert.equal(filed.data.current.view.mine.length, 1);
+    assert.equal((await a.client.call(`${base}/disputes`)).status, 404);
+    // Payment provider is disabled without keys: onboarding fails closed and records nothing.
+    const onboarding = await post(a, 'payouts', payouts, 'startOnboarding', {}, 0);
+    assert.equal(onboarding.status, 409); assert.equal(onboarding.data.error, 'payment_provider_unconfigured');
+  });
+
   await t.test('direct SQL cannot bypass the stream/action allow-list', async () => {
     const call = (action, stream = 'roster') => withCredential(appPool, organizer.token, (client) => client.query('SELECT lde_competition.save_operation($1,$2,$3,$4,$5,0,$6,$7,$8)',
       [f.tenantId, f.eventId, stream, action, randomUUID(), '{}', 'b'.repeat(64), randomUUID()]));
