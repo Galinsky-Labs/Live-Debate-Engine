@@ -24,6 +24,15 @@ export function identityMailer(config: IdentityConfig, env: MailEnvironment, req
       try { await file.writeFile(JSON.stringify(message)); } finally { await file.close(); }
     };
   }
+  if (mode === 'disabled') {
+    // Degraded hosted mode until a verified sending domain exists: the service and existing
+    // sessions work, but verification/reset links are never delivered or logged.
+    return async (message) => {
+      validateMessage(message, config.origin);
+      console.warn(JSON.stringify({ event: 'identity_mail_suppressed', kind: message.kind }));
+      throw error();
+    };
+  }
   if (mode !== 'resend') throw error();
   const key = env.RESEND_API_KEY; const from = env.LDE_IDENTITY_MAIL_FROM;
   if (!key || !/^re_[A-Za-z0-9_-]{20,200}$/.test(key) || !from || from.length > 254 || /[\r\n\0]/.test(from) || !from.includes('@')) throw error();

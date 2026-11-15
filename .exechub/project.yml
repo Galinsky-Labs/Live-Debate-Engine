@@ -1,7 +1,7 @@
 project:
   name: Live-Debate-Engine
   display_name: Live Debate Engine
-  repository: neophilism/Live-Debate-Engine
+  repository: Galinsky-Labs/Live-Debate-Engine
   status: active-development
 
 roadmap:

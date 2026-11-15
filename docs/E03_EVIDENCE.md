@@ -3,10 +3,10 @@
 PR #3 was merged normally with an expected-head guard on 2026-10-11.
 
 - Reviewed head: `74466c3d825e1708dec9a098e2f9b3e905f0f6db`
-- Exact-head CI: https://github.com/neophilism/Live-Debate-Engine/actions/runs/38127969980
-- Separate security self-review: https://github.com/neophilism/Live-Debate-Engine/pull/3#pullrequestreview-5482733931
+- Exact-head CI: https://github.com/Galinsky-Labs/Live-Debate-Engine/actions/runs/38127969980
+- Separate security self-review: https://github.com/Galinsky-Labs/Live-Debate-Engine/pull/3#pullrequestreview-5482733931
 - Merge commit: `01c90b1dc016667572c08f23190f66cadb0b028d`
-- Merged-main CI: https://github.com/neophilism/Live-Debate-Engine/actions/runs/38128158515
+- Merged-main CI: https://github.com/Galinsky-Labs/Live-Debate-Engine/actions/runs/38128158515
 
 All five jobs were observed successful on both the reviewed head and merged main: Foundation Node 22, Foundation Node 24, PostgreSQL 17 integration, PostgreSQL 18 compatibility, and Secret scan. Foundation checks include committed-lock verification, type checking, lint, build, roadmap/migration checks, unit/API tests and npm audit at high severity. Database tests run against disposable CI databases, not Neon production.
 

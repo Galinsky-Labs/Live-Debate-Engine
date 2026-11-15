@@ -30,7 +30,7 @@ try {
   if (env.LDE_IDENTITY_ENABLED === '1') {
     if (!pool || !env.LDE_IDENTITY_DATABASE_URL) throw new Error('Separate identity and runtime databases required');
     // The serving process must never receive the release/operator credential.
-    if (env.DATABASE_URL_UNPOOLED) throw new Error('Remove migration credentials from the runtime environment');
+    if (env.DATABASE_URL_UNPOOLED || env.LDE_MIGRATION_DATABASE_URL) throw new Error('Remove migration credentials from the runtime environment');
     const config = identityConfig(env.LDE_IDENTITY_ORIGIN ?? '', env.LDE_IDENTITY_SECRET ?? '', env.NODE_ENV === 'production' ? 'production' : env.NODE_ENV === 'test' ? 'test' : 'development');
     const providerPool = new pg.Pool(databaseConfig(env.LDE_IDENTITY_DATABASE_URL, env)); pools.push(providerPool);
     providerPool.on('error', () => console.error(JSON.stringify({ event: 'identity_pool_error' })));

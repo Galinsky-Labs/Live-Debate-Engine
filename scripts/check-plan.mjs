@@ -47,7 +47,7 @@ export function checkRepository(root = new URL('../', import.meta.url)) {
   const counts = [...manifest.matchAll(/^ {4}prs: (\d+)$/gm)].map((match) => Number(match[1]));
   if (!/planned_prs: 50\b/.test(manifest) || !/approved: true\b/.test(manifest) || counts.reduce((a, b) => a + b, 0) !== 50) throw new Error('Engine Room count differs from approved engine roadmap');
   const map = JSON.parse(readFileSync(new URL('docs/pr-map.json', root), 'utf8'));
-  if (map.schema_version !== 1 || map.repository !== 'neophilism/Live-Debate-Engine' || !Array.isArray(map.mappings)) throw new Error('Invalid PR mapping');
+  if (map.schema_version !== 1 || map.repository !== 'Galinsky-Labs/Live-Debate-Engine' || !Array.isArray(map.mappings)) throw new Error('Invalid PR mapping');
   const mapped = new Set();
   for (const entry of map.mappings) {
     if (!ids.has(entry.step) || !entry.step.startsWith('E') || !Number.isSafeInteger(entry.pr) || entry.pr < 1 || mapped.has(entry.step)) throw new Error('Invalid actual PR mapping entry');

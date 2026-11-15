@@ -26,7 +26,7 @@ Next: after all E07 gates and merged-main CI pass, execute E08 series, motions a
 
 ## Environment and cloud
 
-Render/Neon metadata reads work. Both exact Neon targets are production branches on PostgreSQL 18 and remain unmodified. Render actions do not establish the supplied project-container assignment; do not deploy elsewhere as a substitute. Existing public-debate-engine-preview belongs to the different Debate-Engine repository.
+The engine is deployed as Render free web service `live-debate-engine` backed by the Galinsky Laboratories Neon project `live-debate-engine` (see DEPLOYMENT.md). The previously referenced Neon projects winter-pond-37009599 and hidden-tree-79062557 are not in the organization and must not be used.
 
 Local GitHub/npm DNS is blocked. E06 restored authenticated source/dependency/Chromium/PostgreSQL artifacts in the isolated working container. PostgreSQL is loopback-only and both destructive test harnesses refuse any database except local lde_ci. No cloud data or credentials were used. Local artifact downloads are not production provisioning.
 

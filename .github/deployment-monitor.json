@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "repository": "neophilism/Live-Debate-Engine",
+  "repository": "Galinsky-Labs/Live-Debate-Engine",
   "kind": "web-app",
   "monitoring": {
     "mode": "inventory"
