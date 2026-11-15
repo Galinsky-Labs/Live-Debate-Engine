@@ -23,7 +23,7 @@ test('distribution package manifest hashes the exact body', () => {
 });
 test('public HTTP is read-only, versioned and CORS-scoped; SDK validates versions', async () => {
   const tenant = randomUUID(); const event = { eventId: randomUUID(), title: 'Public debate' };
-  const pool = { query: async (_sql, [t, e]) => ({ rows: [{ result: { apiVersion: 'public-v1', tenantId: t, events: e && e !== event.eventId ? [] : [event] } }] }) };
+  const pool = { query: async (sql, [t, e]) => (sql.includes('public_editorial') ? { rows: [{ result: [] }] } : { rows: [{ result: { apiVersion: 'public-v1', tenantId: t, events: e && e !== event.eventId ? [] : [event] } }] }) };
   const server = createServer(async (req, res) => { if (!(await createPublicHttp(pool, corsOrigins('https://ubc.example')).handle(req, res))) { res.writeHead(404); res.end(); } });
   server.listen(0, '127.0.0.1'); await once(server, 'listening'); const base = `http://127.0.0.1:${server.address().port}`;
   try {

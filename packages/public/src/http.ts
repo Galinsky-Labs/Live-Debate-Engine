@@ -6,6 +6,7 @@ import type { Pool } from 'pg';
 export const PUBLIC_API_VERSION = 'public-v1';
 const ID = '([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})';
 const EVENTS = new RegExp(`^/api/public/v1/tenants/${ID}/events(?:/${ID}(/package)?)?$`);
+const BRAND = new RegExp(`^/api/public/v1/tenants/${ID}/brand$`);
 
 /** Parse an allow-list of exact HTTPS origins permitted to read the public API from browsers. */
 export function corsOrigins(value: string | undefined): ReadonlySet<string> {
@@ -50,14 +51,22 @@ export function createPublicHttp(pool: Pool, allowedOrigins: ReadonlySet<string>
       if (request.method === 'OPTIONS') { response.writeHead(origin ? 204 : 403, { vary: 'Origin', ...(origin ? { 'access-control-allow-origin': origin, 'access-control-allow-methods': 'GET', 'access-control-allow-headers': 'accept', 'access-control-max-age': '600' } : {}) }); response.end(); return true; }
       if (!['GET', 'HEAD'].includes(request.method ?? '')) { send(405, { error: 'method_not_allowed' }); return true; }
       // Public reads never use cookies or credentials.
-      if (path === '/api/public/v1') { send(200, { apiVersion: PUBLIC_API_VERSION, resources: ['/api/public/v1/tenants/{tenantId}/events', '/api/public/v1/tenants/{tenantId}/events/{eventId}', '/api/public/v1/tenants/{tenantId}/events/{eventId}/package'] }); return true; }
+      if (path === '/api/public/v1') { send(200, { apiVersion: PUBLIC_API_VERSION, resources: ['/api/public/v1/tenants/{tenantId}/brand', '/api/public/v1/tenants/{tenantId}/events', '/api/public/v1/tenants/{tenantId}/events/{eventId}', '/api/public/v1/tenants/{tenantId}/events/{eventId}/package'] }); return true; }
+      const brand = BRAND.exec(path);
+      if (brand) {
+        const row = (await pool.query<{ result: unknown }>('SELECT lde_competition.public_branding($1) AS result', [brand[1]])).rows[0]?.result;
+        if (!row) send(404, { error: 'not_found' }); else send(200, row, 'public, max-age=300');
+        return true;
+      }
       const route = EVENTS.exec(path);
       if (!route) { send(404, { error: 'not_found' }); return true; }
       const [, tenant, event, pkg] = route;
       const result = (await pool.query<{ result: { events: Record<string, unknown>[] } }>('SELECT lde_competition.public_catalog($1,$2) AS result', [tenant, event ?? null])).rows[0]?.result;
       if (!event) { send(200, result); return true; }
-      const found = result?.events[0];
-      if (!found) { send(404, { error: 'not_found' }); return true; }
+      const listed = result?.events[0];
+      if (!listed) { send(404, { error: 'not_found' }); return true; }
+      const editorial = (await pool.query<{ result: unknown }>('SELECT lde_competition.public_editorial($1,$2) AS result', [tenant, event])).rows[0]?.result ?? [];
+      const found = { ...listed, editorial };
       send(200, pkg ? distributionPackage(found, new Date(clock()).toISOString()) : { apiVersion: PUBLIC_API_VERSION, event: found });
     } catch { send(503, { error: 'public_api_unavailable' }); }
     return true;

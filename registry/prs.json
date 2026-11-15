@@ -383,7 +383,9 @@
       "id": "E-34",
       "title": "Editorial publishing and distribution packages",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        32
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": [],
@@ -395,7 +397,9 @@
       "id": "E-35",
       "title": "Access entitlements, memberships, tickets, and supporters",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        32
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -404,7 +408,9 @@
       "id": "E-36",
       "title": "Full white-label configuration",
       "origin": "original",
-      "prs": [],
+      "prs": [
+        32
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": []
@@ -418,7 +424,10 @@
       ],
       "dependsOn": [],
       "externalDependencies": [],
-      "externalPrerequisites": []
+      "externalPrerequisites": [],
+      "contributingPrs": [
+        32
+      ]
     },
     {
       "id": "E-38",

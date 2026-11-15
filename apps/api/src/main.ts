@@ -5,6 +5,8 @@ import { createOperationsHttp } from '../../../packages/competition/src/operatio
 import { operationStreams } from '../../../packages/competition/src/operations/index.js';
 import { BallotService, createBallotHttp } from '../../../packages/competition/src/operations/ballots.js';
 import { corsOrigins, createPublicHttp } from '../../../packages/public/src/http.js';
+import { createTenantHttp } from '../../../packages/public/src/tenant-http.js';
+import { WebhookWorker } from '../../../packages/public/src/webhooks.js';
 import { CompetitionStore } from '../../../packages/competition/src/store.js';
 import { createCompetitionHttp } from '../../../packages/competition/src/http.js';
 import { createUiRuntime } from '../../../packages/ui/src/http.js';
@@ -53,8 +55,13 @@ try {
   const operations = pool && identity ? createOperationsHttp(new OperationStore(pool, operationStreams(secret)), identity, env.LDE_IDENTITY_ORIGIN ?? '') : null;
   const ballots = pool && identity ? createBallotHttp(new BallotService(pool, secret), identity, env.LDE_IDENTITY_ORIGIN ?? '') : null;
   const publicApi = pool ? createPublicHttp(pool, corsOrigins(env.LDE_PUBLIC_CORS_ORIGINS)) : null;
+  const tenantAdmin = pool && identity ? createTenantHttp(pool, identity, env.LDE_IDENTITY_ORIGIN ?? '', secret) : null;
+  if (env.LDE_WEBHOOKS_ENABLED && !['0', '1'].includes(env.LDE_WEBHOOKS_ENABLED)) throw new Error('Invalid webhook flag');
+  const webhooks = pool && identity && env.LDE_WEBHOOKS_ENABLED === '1' ? new WebhookWorker(pool, secret) : null;
+  webhooks?.start();
   const api = createApi({
     ...(publicApi ? { publicApi } : {}),
+    ...(tenantAdmin ? { tenantAdmin } : {}),
     ...(operations ? { operations } : {}),
     ...(ballots ? { ballots } : {}),
     ...(administration ? { administration } : {}),
@@ -75,6 +82,7 @@ try {
   const stop = () => {
     if (stopping) return;
     stopping = true;
+    webhooks?.stop();
     const deadline = setTimeout(() => process.exit(1), 10000);
     deadline.unref();
     api.close(() => { void (identity?.drain() ?? Promise.resolve()).finally(() => Promise.all(pools.map((item) => item.end()))).finally(() => clearTimeout(deadline)); });
