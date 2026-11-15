@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import { withCredential } from '../../../identity/src/broker.js';
 import { canonicalJson } from '../../../contracts/src/canonical.js';
-import { fail, int, oneOf, record, uuid } from './common.js';
+import { fail, int, oneOf, record, uuid, type Queryable } from './common.js';
 import { applyCommand, type AnyStream } from './stream.js';
 
 export type Envelope = { snapshot: { entityId: string; revision: number; data: { stream: string; action: string; state: unknown; updatedBy: string; updatedAt: string } }; contentHash: string };
@@ -16,6 +16,11 @@ function verified(result: unknown): Result {
     if (hash !== envelope.contentHash) throw new Error('Operation snapshot integrity failure');
   }
   return output;
+}
+function redacted(stream: AnyStream, result: Result): Result {
+  if (!stream.redact) return result;
+  const strip = (envelope: Envelope): Envelope => ({ ...envelope, redacted: true, snapshot: { ...envelope.snapshot, data: { ...envelope.snapshot.data, state: stream.redact?.(envelope.snapshot.data.state) } } } as Envelope);
+  return { ...result, ...(result.records ? { records: result.records.map(strip) } : {}), ...(result.current ? { current: strip(result.current) } : {}) };
 }
 async function canRead(client: PoolClient, stream: AnyStream, tenant: string, event: string, actor: string): Promise<boolean> {
   const result = await client.query<{ allowed: boolean }>('SELECT lde_security.has_access($1,$2,$3,$4) AS allowed', [stream.readAction, tenant, event, actor]);
@@ -45,7 +50,7 @@ export class OperationStore {
     return withCredential(this.pool, credential, async (client) => {
       const response = await client.query<{ result: unknown }>('SELECT lde_competition.operation_records($1,$2,$3,$4,$5,$6) AS result',
         [tenant, event, stream.name, stream.readAction, entityId === null ? null : uuid(entityId, 'entity'), int(beforeRevision, 'revision', 1)]);
-      return verified(response.rows[0]?.result);
+      return redacted(stream, verified(response.rows[0]?.result));
     });
   }
   /** Self-service read: only the stream's filtered view for the authenticated principal. */
@@ -70,7 +75,7 @@ export class OperationStore {
       const current = verified((await client.query<{ result: unknown }>('SELECT lde_competition.operation_state($1,$2,$3,$4,$5) AS result',
         [tenant, event, stream.name, action, entity])).rows[0]?.result).current ?? null;
       const now = new Date(this.clock()).toISOString();
-      const context = { actor: actor.principalId, now };
+      const context = { actor: actor.principalId, now, scope: { tenantId: tenant, eventId: event, entityId: entity } };
       let state: unknown;
       if (current === null) {
         if (expected !== 0) fail('revision_conflict', 409);
@@ -81,12 +86,12 @@ export class OperationStore {
         state = current.snapshot.revision === expected ? current.snapshot.data.state : null;
       }
       let payload: unknown = body.payload;
-      if (state !== null && stream.prepare) payload = await stream.prepare(String(body.type), body.payload, state, context);
+      if (state !== null && stream.prepare) payload = await stream.prepare(String(body.type), body.payload, state, context, client as unknown as Queryable);
       const next = state === null ? { state: {}, action } : applyCommand(stream, state, body.type, payload, context);
       const digest = createHash('sha256').update(canonicalJson({ type: body.type, payload: body.payload ?? null }), 'utf8').digest('hex');
       const saved = verified((await client.query<{ result: unknown }>('SELECT lde_competition.save_operation($1,$2,$3,$4,$5,$6,$7,$8,$9) AS result',
         [tenant, event, stream.name, next.action, entity, expected, JSON.stringify(next.state), digest, commandId])).rows[0]?.result);
-      if (await canRead(client, stream, tenant, event, actor.principalId)) return saved;
+      if (await canRead(client, stream, tenant, event, actor.principalId)) return redacted(stream, saved);
       return { current: selfView(stream, saved.current, actor.principalId), replayed: saved.replayed ?? false };
     });
   }

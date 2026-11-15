@@ -2,7 +2,8 @@ import { AdministrationStore } from '../../../packages/competition/src/administr
 import { createAdministrationHttp } from '../../../packages/competition/src/administration-http.js';
 import { OperationStore } from '../../../packages/competition/src/operations/store.js';
 import { createOperationsHttp } from '../../../packages/competition/src/operations/http.js';
-import { OPERATION_STREAMS } from '../../../packages/competition/src/operations/index.js';
+import { operationStreams } from '../../../packages/competition/src/operations/index.js';
+import { BallotService, createBallotHttp } from '../../../packages/competition/src/operations/ballots.js';
 import { CompetitionStore } from '../../../packages/competition/src/store.js';
 import { createCompetitionHttp } from '../../../packages/competition/src/http.js';
 import { createUiRuntime } from '../../../packages/ui/src/http.js';
@@ -47,9 +48,12 @@ try {
   const ui = env.LDE_UI_ENABLED === '0' ? null : await createUiRuntime(env.LDE_UI_BRAND ?? 'harbor', !!identity);
   const competition = pool && identity ? createCompetitionHttp(new CompetitionStore(pool), identity, env.LDE_IDENTITY_ORIGIN ?? '') : null;
   const administration = pool && identity ? createAdministrationHttp(new AdministrationStore(pool), identity, env.LDE_IDENTITY_ORIGIN ?? '') : null;
-  const operations = pool && identity ? createOperationsHttp(new OperationStore(pool, OPERATION_STREAMS), identity, env.LDE_IDENTITY_ORIGIN ?? '') : null;
+  const secret = env.LDE_IDENTITY_SECRET ?? '';
+  const operations = pool && identity ? createOperationsHttp(new OperationStore(pool, operationStreams(secret)), identity, env.LDE_IDENTITY_ORIGIN ?? '') : null;
+  const ballots = pool && identity ? createBallotHttp(new BallotService(pool, secret), identity, env.LDE_IDENTITY_ORIGIN ?? '') : null;
   const api = createApi({
     ...(operations ? { operations } : {}),
+    ...(ballots ? { ballots } : {}),
     ...(administration ? { administration } : {}),
     ...(competition ? { competition } : {}),
     ...(ui ? { ui } : {}),
