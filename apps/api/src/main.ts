@@ -4,6 +4,7 @@ import { OperationStore } from '../../../packages/competition/src/operations/sto
 import { createOperationsHttp } from '../../../packages/competition/src/operations/http.js';
 import { operationStreams } from '../../../packages/competition/src/operations/index.js';
 import { BallotService, createBallotHttp } from '../../../packages/competition/src/operations/ballots.js';
+import { corsOrigins, createPublicHttp } from '../../../packages/public/src/http.js';
 import { CompetitionStore } from '../../../packages/competition/src/store.js';
 import { createCompetitionHttp } from '../../../packages/competition/src/http.js';
 import { createUiRuntime } from '../../../packages/ui/src/http.js';
@@ -51,7 +52,9 @@ try {
   const secret = env.LDE_IDENTITY_SECRET ?? '';
   const operations = pool && identity ? createOperationsHttp(new OperationStore(pool, operationStreams(secret)), identity, env.LDE_IDENTITY_ORIGIN ?? '') : null;
   const ballots = pool && identity ? createBallotHttp(new BallotService(pool, secret), identity, env.LDE_IDENTITY_ORIGIN ?? '') : null;
+  const publicApi = pool ? createPublicHttp(pool, corsOrigins(env.LDE_PUBLIC_CORS_ORIGINS)) : null;
   const api = createApi({
+    ...(publicApi ? { publicApi } : {}),
     ...(operations ? { operations } : {}),
     ...(ballots ? { ballots } : {}),
     ...(administration ? { administration } : {}),

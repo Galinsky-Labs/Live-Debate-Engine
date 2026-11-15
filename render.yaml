@@ -22,6 +22,9 @@ services:
       - key: LDE_IDENTITY_ORIGIN
         value: https://live-debate-engine.onrender.com
       # disabled = degraded mode until a verified Resend domain exists; switch to resend then.
+      # Exact HTTPS origins allowed to read the public API from browsers (UBC Debates).
+      - key: LDE_PUBLIC_CORS_ORIGINS
+        value: https://ubc-debates.onrender.com
       - key: LDE_IDENTITY_MAIL_MODE
         value: disabled
       - key: LDE_MIGRATION_DATABASE_URL # Neon live-debate-engine owner, direct host
